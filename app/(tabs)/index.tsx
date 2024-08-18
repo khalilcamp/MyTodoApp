@@ -1,101 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Image, GestureResponderEvent } from 'react-native';
 import Creature from '@/components/Creature';
-import TaskList from '@/components/TaskList';
-import TaskInput from '@/components/TaskInput';
 import styled from 'styled-components/native';
-import AntDesign from '@expo/vector-icons/AntDesign';
-import { useFonts, OpenSans_300Light, OpenSans_400Regular, OpenSans_600SemiBold, OpenSans_700Bold, OpenSans_800ExtraBold } from '@expo-google-fonts/open-sans';
-
-interface Task {
-  id: number;
-  title: string;
-  category: string;
-  completed: boolean;
-}
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const HomeScreen = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isAddMode, setIsAddMode] = useState(false);
-  const [level, setLevel] = useState(1);
-  const [xp, setXP] = useState(0);
-  const [xpNeeded, setXPNeeded] = useState(100);
+  const [targetPosition, setTargetPosition] = useState<{ x: number; y: number } | undefined>(undefined);
 
-  const addTaskHandler = (taskTitle: string, category: string) => {
-    setTasks(currentTasks => [
-      ...currentTasks,
-      { id: Math.random(), title: taskTitle, category, completed: false }
-    ]);
-    setIsAddMode(false);
+  const handlePressIn = (event: GestureResponderEvent) => {
+    const { pageX, pageY } = event.nativeEvent;
+    setTargetPosition({ x: pageX - 75, y: pageY - 75 }); // Posiciona o centro da criatura no cursor
   };
-
-  const completeTaskHandler = (taskId: number, category: string) => {
-    setTasks(currentTasks =>
-      currentTasks.map(task =>
-        task.id === taskId ? { ...task, completed: true } : task
-      )
-    );
-
-    let xpGain = 0;
-    if (category === 'Importante') {
-      xpGain = 20;
-    } else if (category === 'Prioridade') {
-      xpGain = 200;
-    } else if (category === 'Opcional') {
-      xpGain = 10;
-    }
-
-    gainXP(xpGain);
-  };
-
-  const gainXP = (amount: number) => {
-    setXP(prevXP => {
-      const newXP = prevXP + amount;
-      if (newXP >= xpNeeded) {
-        const extraXP = newXP - xpNeeded;
-        setLevel(prevLevel => prevLevel + 1);
-        setXPNeeded(prevXPNeeded => Math.floor(prevXPNeeded * 1.2));
-        return extraXP;
-      }
-      return newXP;
-    });
-  };
-
-  const deleteTaskHandler = (taskId: number) => {
-    setTasks(currentTasks => currentTasks.filter(task => task.id !== taskId));
-  };
-
-  const reactivateTasks = () => {
-    setTasks(currentTasks =>
-      currentTasks.map(task =>
-        task.completed ? { ...task, completed: false } : task
-      )
-    );
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(reactivateTasks, 24 * 60 * 60 * 1000); // 24 horas, eu acho?
-    return () => clearTimeout(timer);
-  }, [tasks]);
 
   return (
     <View style={styles.screen}>
-      <Creature level={level} />
-      <WelcomeContainer>
-      <AntDesign name="aliwangwang-o1" size={32} color="lightgray" />
-      <XPText>XP: {xp}/{xpNeeded}</XPText>
-      <AntDesign name="aliwangwang-o1" size={32} color="lightgray" />
-      </WelcomeContainer>
-      <TaskButton onPress={() => setIsAddMode(true)}>
-        <ButtonText>Adicionar Nova Tarefa</ButtonText>
+      <View style={styles.backgroundContainer}>
+        <Image source={require('../../assets/fundo.png')} style={styles.background} />
+      </View>
+      <Creature level={1} targetPosition={targetPosition} />
+      <BallButton onPressIn={handlePressIn}>
+        <FontAwesome name="soccer-ball-o" size={32} color={'white'} />
+      </BallButton>
+      <HatButton onPressIn={handlePressIn}>
+        <Ionicons name="shirt" size={32} color={'white'} />
+      </HatButton>
+      <TaskButton onPressIn={handlePressIn}>
+        <Ionicons name="list" size={32} color={'white'} />
       </TaskButton>
-      <TaskInput visible={isAddMode} onAddTask={addTaskHandler} onClose={() => setIsAddMode(false)} />
-      <TaskList
-        tasks={tasks}
-        onTaskCompleted={completeTaskHandler}
-        onDeleteTask={deleteTaskHandler}
-        onReactivateTask={reactivateTasks}
-      />
+      <FoodIcon onPressIn={handlePressIn}>
+        <Ionicons name="fast-food" size={32} color={'white'} />
+      </FoodIcon>
+      <SettingsButton onPressIn={handlePressIn}>
+        <FontAwesome name="cog" size={36} color={'white'} />
+      </SettingsButton>
     </View>
   );
 };
@@ -103,44 +41,73 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#dbdbdb',
     justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  background: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
 });
 
-const TaskButton = styled.TouchableOpacity`
-  font-family: 'OpenSans_600SemiBold';
-  font-weight: 700;
-  background-color: #533838;
+const BallButton = styled.TouchableOpacity`
+  background-color: #470b61;
+  border: 2px;
+  border-radius: 18px;
   padding: 10px;
-  border-radius: 5px;
-  align-items: center;
-  margin-top: 10px;
+  position: absolute;
+  right: 15px;
+  top: 30px;
 `;
 
-const ButtonText = styled.Text`
-  font-family: 'OpenSans_600SemiBold';
-  font-size: 16px;
-  color: white;
+const HatButton = styled.TouchableOpacity`
+  background-color: #470b61;
+  border: 2px;
+  border-radius: 18px;
+  padding: 10px;
+  position: absolute;
+  right: 15px;
+  top: 125px;
 `;
 
-const XPText = styled.Text`
-  font-family: 'OpenSans_600SemiBold';
-  font-weight: 700;
-  font-size: 18px;
-  margin-top: 10px;
-  color: white;
+const SettingsButton = styled.TouchableOpacity`
+  background-color: #470b61;
+  border: 2px;
+  border-radius: 18px;
+  padding: 10px;
+  position: absolute;
+  right: 15px;
+  top: 420px;
 `;
 
-const WelcomeContainer = styled.View`
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 20;
-  margin-top: 20px;
-  margin-bottom: 15px;
-`
+const TaskButton = styled.TouchableOpacity`
+  background-color: #470b61;
+  border: 2px;
+  border-radius: 18px;
+  padding: 10px;
+  position: absolute;
+  right: 15px;
+  top: 220px;
+`;
+
+const FoodIcon = styled.TouchableOpacity`
+  background-color: #470b61;
+  border: 2px;
+  border-radius: 18px;
+  padding: 10px;
+  position: absolute;
+  right: 15px;
+  top: 320px;
+`;
+
 export default HomeScreen;

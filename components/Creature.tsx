@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Dimensions, TouchableWithoutFeedback } from 'react-native';
+import { Image, StyleSheet, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, withSequence, runOnJS, withRepeat } from 'react-native-reanimated';
 import { Audio } from 'expo-av';
 
 interface CreatureProps {
   level: number;
+  targetPosition?: { x: number; y: number }; // Usar undefined em vez de null
 }
 
-const Creature: React.FC<CreatureProps> = ({ level }) => {
+const Creature: React.FC<CreatureProps> = ({ level, targetPosition }) => {
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
@@ -38,7 +39,6 @@ const Creature: React.FC<CreatureProps> = ({ level }) => {
       await soundRef.current.replayAsync();
     }
 
-    // Fazer a animação de "boing"
     scale.value = withSequence(
       withTiming(1.2, { duration: 150, easing: Easing.out(Easing.ease) }),
       withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) })
@@ -46,10 +46,9 @@ const Creature: React.FC<CreatureProps> = ({ level }) => {
   };
 
   const selectRandomAnimation = () => {
-    const maxX = screenWidth / 2 - 75; // Considera metade da largura menos a largura do sprite
-    const maxY = screenHeight / 6 - 75; // Considera metade da altura menos a altura do sprite
+    const maxX = screenWidth / 2 - 75;
+    const maxY = screenHeight / 2 - 75;
 
-    // Gera posições aleatórias dentro dos limites
     const randomX = Math.random() * (maxX * 2) - maxX;
     const randomY = Math.random() * (maxY * 2) - maxY;
 
@@ -60,16 +59,24 @@ const Creature: React.FC<CreatureProps> = ({ level }) => {
   };
 
   useEffect(() => {
-    // Animação de levitação contínua. Isso foi um saco de "arrumar".
+    // Animação de levitação contínua
     translateY.value = withRepeat(
       withTiming(-10, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
       -1,
       true
     );
 
-    // Inicia a animação, básico.
+    // Inicia a animação aleatória
     selectRandomAnimation();
   }, [screenWidth, screenHeight]);
+
+  // Adiciona lógica para mover a criatura ao alvo (targetPosition)
+  useEffect(() => {
+    if (targetPosition) {
+      translateX.value = withTiming(targetPosition.x, { duration: 1000 });
+      translateY.value = withTiming(targetPosition.y, { duration: 1000 });
+    }
+  }, [targetPosition]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const direction = translateX.value > 0 ? -1 : 1;
@@ -90,16 +97,11 @@ const Creature: React.FC<CreatureProps> = ({ level }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.backgroundContainer}>
-        <Image source={require('../assets/fundo.png')} style={styles.background} />
-      </View>
-      <TouchableWithoutFeedback onPress={handlePress}>
-        <Animated.View style={animatedStyle}>
-          <Image source={getCreatureStage()} style={{ width: 150, height: 150 }} />
-        </Animated.View>
-      </TouchableWithoutFeedback>
-    </View>
+    <TouchableWithoutFeedback onPress={handlePress}>
+      <Animated.View style={animatedStyle}>
+        <Image source={getCreatureStage()} style={{ width: 150, height: 150 }} />
+      </Animated.View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -108,28 +110,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  backgroundContainer: {
-    borderRadius: 18,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 5, height: 4 }, 
-    shadowOpacity: 1, 
-    shadowRadius: 5, 
-    elevation: 10,
-  },
-  background: {
-    borderRadius: 18,
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
   },
 });
 
